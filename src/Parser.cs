@@ -60,7 +60,10 @@ static class Parser{
             }
         }
         else if(tokens.Count == 2){
-            if(tokens[0].type == TokenType.Varname && tokens[1].type == TokenType.Parens){
+            if(tokens[0].type == TokenType.Varname && tokens[1].type == TokenType.Varname){
+                return new Var(tokens[0], tokens[1]);
+            }
+            else if(tokens[0].type == TokenType.Varname && tokens[1].type == TokenType.Parens){
                 return new Call(tokens[0], ParseArgs(tokens[1]));
             }
             else if(tokens[0].type == TokenType.Varname && tokens[1].type == TokenType.Square){
@@ -85,6 +88,9 @@ static class Parser{
         }
         if(tokens[0].type == TokenType.Operator && tokens[0].value == "!"){
             return new UnaryOp(ParseSubExpression(tokens.GetRange(1, tokens.Count-1)), tokens[0]);
+        }
+        foreach(var t in tokens){
+            Console.WriteLine(t.value);
         }
         throw new Exception("Unexpected tokens");
     }
@@ -128,6 +134,9 @@ static class Parser{
         List<IStatement> statements = [];
         for(var i=0;i<statementTokens.Count;i++){
             var s = statementTokens[i];
+            if(s.Count == 0){
+                continue;
+            }
             if(s[0].type == TokenType.Import){
                 var returnType = s[1];
                 var name = s[2];

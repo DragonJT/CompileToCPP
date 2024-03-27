@@ -40,20 +40,25 @@ class Call(Token name, IExpression[] args) : IExpression{
     public IExpression[] args = args;
 }
 
+class Indexor(Token varname, IExpression indexExpression) : IExpression{
+    public Token varname = varname;
+    public IExpression indexExpression = indexExpression;
+}
+
 class New(Token name, IExpression[] args) : IExpression{
     public Token name = name;
     public IExpression[] args = args;
+}
+
+class Var(Token type, Token name):IExpression{
+    public Token type = type;
+    public Token name = name;
 }
 
 interface IStatement:INode{}
 
 class Expression(IExpression expression) : IStatement{
     public IExpression expression = expression;
-}
-
-class Indexor(Token varname, IExpression indexExpression) : IExpression{
-    public Token varname = varname;
-    public IExpression indexExpression = indexExpression;
 }
 
 class While(IExpression condition, Body body) : IStatement{
