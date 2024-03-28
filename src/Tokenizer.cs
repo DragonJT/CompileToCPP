@@ -1,7 +1,7 @@
 
 
 enum TokenType{Varname, Int, Float, Curly, Square, Parens, Operator, DoubleQuote, Minus,
-    SingleQuote, Equals, SemiColon, Comma, While, If, Break, True, False, Return, For, New, Import}
+    SingleQuote, Equals, SemiColon, Comma, While, If, Break, True, False, Return, For, New}
 
 class Token(string value, int start, int end, TokenType type)
 {
@@ -31,7 +31,7 @@ static class Tokenizer{
         var varnameLiterals = new Dictionary<string, TokenType>{
             {"while", TokenType.While}, {"if", TokenType.If}, {"break", TokenType.Break}, 
             {"true", TokenType.True}, {"false", TokenType.False}, {"return", TokenType.Return},
-            {"for", TokenType.For}, {"new", TokenType.New}, {"import", TokenType.Import}
+            {"for", TokenType.For}, {"new", TokenType.New}
         };
         var operators = "+*/<>!=.";
         var operators2 = new string[]{"==", ">=", "<=", "!=", "&&", "||"};

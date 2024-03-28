@@ -124,30 +124,12 @@ static class Parser{
         return output;
     }
 
-    static Variable[] ParseParameters(string code){
-        var parameterTokens = SplitByComma(Tokenizer.Tokenize(code));
-        return parameterTokens.Select(t=>new Variable(t[0], t[1])).ToArray();
-    }
-
-    public static Body ParseBody(string code){
+    static Body ParseBody(string code){
         var statementTokens = SplitIntoGroups(Tokenizer.Tokenize(code));
         List<IStatement> statements = [];
-        for(var i=0;i<statementTokens.Count;i++){
-            var s = statementTokens[i];
+        foreach(var s in statementTokens){
             if(s.Count == 0){
                 continue;
-            }
-            if(s[0].type == TokenType.Import){
-                var returnType = s[1];
-                var name = s[2];
-                var parameters = ParseParameters(s[3].value);
-                statements.Add(new ImportFunction(returnType, name, parameters, s[4]));
-            }
-            else if(s.Count == 4 && s[3].type == TokenType.Curly){
-                var returnType = s[0];
-                var name = s[1];
-                var parameters = ParseParameters(s[2].value);
-                statements.Add(new Function(returnType, name, parameters, ParseBody(s[3].value)));
             }
             else if(s[0].type == TokenType.While){
                 statements.Add(new While(ParseExpression(Tokenizer.Tokenize(s[1].value)), ParseBody(s[2].value)));
@@ -176,4 +158,26 @@ static class Parser{
         }
         return new Body(statements);
     }
+
+    static Variable[] ParseParameters(string code){
+        var parameterTokens = SplitByComma(Tokenizer.Tokenize(code));
+        return parameterTokens.Select(t=>new Variable(t[0], t[1])).ToArray();
+    }
+
+    public static Root ParseRoot(string code){
+        var declarationTokens = SplitIntoGroups(Tokenizer.Tokenize(code));
+        List<IDeclaration> declarations = [];
+        foreach(var d in declarationTokens){
+            if(d.Count == 4 && d[2].type == TokenType.Parens && d[3].type == TokenType.Curly){
+                var returnType = d[0];
+                var name = d[1];
+                var parameters = ParseParameters(d[2].value);
+                declarations.Add(new Function(returnType, name, parameters, ParseBody(d[3].value)));
+            }
+            else{
+                declarations.Add(new Expression(ParseExpression(d)));
+            }
+        }
+        return new Root(declarations);
+    }    
 }

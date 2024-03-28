@@ -57,10 +57,6 @@ class Var(Token type, Token name):IExpression{
 
 interface IStatement:INode{}
 
-class Expression(IExpression expression) : IStatement{
-    public IExpression expression = expression;
-}
-
 class While(IExpression condition, Body body) : IStatement{
     public IExpression condition = condition;
     public Body body = body;
@@ -85,21 +81,23 @@ class Return(IExpression? expression) : IStatement{
     public IExpression? expression = expression;
 }
 
-class ImportFunction(Token returnType, Token name, Variable[] parameters, Token cppCode):IStatement{
-    public Token returnType = returnType;
-    public Token name = name;
-    public Variable[] parameters = parameters;
-    public Token cppCode = cppCode;
+interface IDeclaration{}
+
+class Body(List<IStatement> statements) : INode{
+    public List<IStatement> statements = statements;
 }
 
-class Function(Token returnType, Token name, Variable[] parameters, Body body):IStatement
-{
+class Expression(IExpression expression) : IStatement, IDeclaration{
+    public IExpression expression = expression;
+}
+
+class Function(Token returnType, Token name, Variable[] parameters, Body body):IDeclaration{
     public Token returnType = returnType;
     public Token name = name;
     public Variable[] parameters = parameters;
     public Body body = body;
 }
 
-class Body(List<IStatement> statements) : INode{
-    public List<IStatement> statements = statements;
+class Root(List<IDeclaration> declarations){
+    public List<IDeclaration> declarations = declarations;
 }

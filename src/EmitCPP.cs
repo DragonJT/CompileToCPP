@@ -19,7 +19,15 @@ static class EmitCPP{
             return call.name.value+EmitArgs(call.args);
         }
         else if(expression is Literal literal){
-            return literal.value.value;
+            if(literal.type == LiteralType.String){
+                return '"'+literal.value.value+'"';
+            }
+            else if(literal.type == LiteralType.Char){
+                return '\''+literal.value.value+'\'';
+            }
+            else{
+                return literal.value.value;
+            }
         }
         else if(expression is BinaryOp binaryOp){
             return EmitExpression(binaryOp.left)+binaryOp.op.value+EmitExpression(binaryOp.right);
@@ -50,65 +58,58 @@ static class EmitCPP{
         return cpp;
     }
 
-    static void EmitBody(Body body, ref string bodyCpp, ref string baseCpp){
+    static string EmitBody(Body body){
+        var cpp = "";
         foreach(var s in body.statements){
-            if(s is ImportFunction importFunction){
-                baseCpp += importFunction.returnType.value+" "+importFunction.name.value+EmitParameters(importFunction.parameters)+"{\n";
-                baseCpp += importFunction.cppCode.value;
-                baseCpp += "}\n";
-            }
-            else if(s is Function function){
-                baseCpp += function.returnType.value+" "+function.name.value+EmitParameters(function.parameters)+"{\n";
-                var funcBody = "";
-                EmitBody(function.body, ref funcBody, ref baseCpp);
-                baseCpp+=funcBody;
-                baseCpp += "}\n";
-            }
-            else if(s is Expression expression){
-                bodyCpp += EmitExpression(expression.expression)+";\n";
+            if(s is Expression expression){
+                cpp += EmitExpression(expression.expression)+";\n";
             }
             else if(s is If @if){
-                bodyCpp += "if("+EmitExpression(@if.condition)+"){\n";
-                EmitBody(@if.body, ref bodyCpp, ref baseCpp);
-                bodyCpp += "}\n";
+                cpp += "if("+EmitExpression(@if.condition)+"){\n";
+                cpp += EmitBody(@if.body);
+                cpp += "}\n";
             }
             else if(s is While @while){
-                bodyCpp += "while("+EmitExpression(@while.condition)+"){\n";
-                EmitBody(@while.body, ref bodyCpp, ref baseCpp);
-                bodyCpp += "}\n";
+                cpp += "while("+EmitExpression(@while.condition)+"){\n";
+                cpp += EmitBody(@while.body);
+                cpp += "}\n";
             }
             else if(s is Break @break){
-                bodyCpp += "break;\n";
+                cpp += "break;\n";
             }
             else if(s is For @for){
                 var i = @for.varname.value;
-                bodyCpp += $"for(int {i}={EmitExpression(@for.start)};{i}<{EmitExpression(@for.end)};{i}++){{\n";
-                EmitBody(@for.body, ref bodyCpp, ref baseCpp);
-                bodyCpp += "}\n";
+                cpp += $"for(int {i}={EmitExpression(@for.start)};{i}<{EmitExpression(@for.end)};{i}++){{\n";
+                cpp += EmitBody(@for.body);
+                cpp += "}\n";
             }
             else if(s is Return @return){
                 if(@return.expression == null){
-                    bodyCpp += "return;\n";
+                    cpp += "return;\n";
                 }
                 else{
-                    bodyCpp += "return "+EmitExpression(@return.expression)+";\n";
+                    cpp += "return "+EmitExpression(@return.expression)+";\n";
                 }
             }
             else{
                 throw new Exception(s.GetType().Name);
             }
         }
+        return cpp;
     }
 
-    public static string Emit(Body body){
-        string baseCpp = "#include <stdio.h>\n\n";
-        string mainCpp = "";
-
-        mainCpp += "int main(){\n";
-        EmitBody(body, ref mainCpp, ref baseCpp);
-        mainCpp += "return 0;\n";
-        mainCpp += "}\n";
-
-        return baseCpp + mainCpp;
+    public static string EmitRoot(Root root){
+        string cpp = "#include <stdio.h>\n\n";
+        foreach(var d in root.declarations){
+            if(d is Function function){
+                cpp += function.returnType.value+" "+function.name.value+EmitParameters(function.parameters)+"{\n";
+                cpp += EmitBody(function.body);
+                cpp += "}\n";
+            }
+            else if(d is Expression expression){
+                cpp += EmitExpression(expression.expression);
+            }
+        }
+        return cpp;
     }
 }
