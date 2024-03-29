@@ -30,7 +30,12 @@ class BinaryOp(IExpression left, IExpression right, Token op) : IExpression{
     }
 }
 
-class UnaryOp(IExpression expression, Token op) : IExpression{
+class PrefixUnaryOp(IExpression expression, Token op) : IExpression{
+    public IExpression expression = expression;
+    public Token op = op;
+}
+
+class PostfixUnaryOp(IExpression expression, Token op) : IExpression{
     public IExpression expression = expression;
     public Token op = op;
 }
@@ -81,14 +86,14 @@ class Return(IExpression? expression) : IStatement{
     public IExpression? expression = expression;
 }
 
+class Expression(IExpression expression) : IStatement{
+    public IExpression expression = expression;
+}
+
 interface IDeclaration{}
 
 class Body(List<IStatement> statements) : INode{
     public List<IStatement> statements = statements;
-}
-
-class Expression(IExpression expression) : IStatement, IDeclaration{
-    public IExpression expression = expression;
 }
 
 class Function(Token returnType, Token name, Variable[] parameters, Body body):IDeclaration{
@@ -96,6 +101,11 @@ class Function(Token returnType, Token name, Variable[] parameters, Body body):I
     public Token name = name;
     public Variable[] parameters = parameters;
     public Body body = body;
+}
+
+class Global(IExpression left, IExpression right):IDeclaration{
+    public IExpression left = left;
+    public IExpression right = right;
 }
 
 class Root(List<IDeclaration> declarations){

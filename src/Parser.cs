@@ -1,5 +1,7 @@
 
 
+using System.Text.Json.Nodes;
+
 static class Parser{
     static List<List<Token>> SplitByComma(List<Token> tokens){
         List<List<Token>> output = [];
@@ -24,9 +26,55 @@ static class Parser{
         return SplitByComma(Tokenizer.Tokenize(token.value)).Select(ParseExpression).ToArray();
     }
 
-    static IExpression ParseSubExpression(List<Token> tokens){
-        var operators = new string[][]{ ["="], ["&&", "||"], [">=", "<=", "==", "!="],
-            ["<", ">"], ["+", "-"], ["/", "*"], ["."]};
+    static bool CheckIfNextTokensAreValidForBinaryOp(List<Token> tokens, int index, string[] prefixOps){
+        for(var i=index+1;i<tokens.Count;i++){
+            var t = tokens[i];
+            if(t.type == TokenType.Operator){
+                if(prefixOps.Contains(t.value)){
+                    continue;
+                }
+                else{
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static bool CheckIfPrevTokensAreValidForBinaryOp(List<Token> tokens, int index, string[] postfixOps){
+        for(var i=index-1;i>=0;i--){
+            var t = tokens[i];
+            if(t.type == TokenType.Operator){
+                if(postfixOps.Contains(t.value)){
+                    continue;
+                }
+                else{
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static int FindBinaryOp(List<Token> tokens, string[] ops, string[] prefixOps, string[] postfixOps){
+        for(var i=tokens.Count-1;i>=0;i--){
+            if(tokens[i].type == TokenType.Operator && ops.Contains(tokens[i].value)){
+                if(CheckIfPrevTokensAreValidForBinaryOp(tokens, i, postfixOps) && CheckIfNextTokensAreValidForBinaryOp(tokens, i, prefixOps)){
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    static IExpression ParseExpression(List<Token> tokens){
+        string[][] binaryOps = [["=", "+=", "-=", "*=", "/="], ["&&", "||"], [">=", "<=", "==", "!="],
+            ["<", ">"], ["+", "-"], ["/", "*"]];
+        string[] postfixOps = ["++", "--"];
+        string[] prefixOps = ["!", "+", "-", "*", "&", "++", "--"];
+
         if(tokens.Count == 0){
             throw new Exception("No tokens");
         }
@@ -67,45 +115,31 @@ static class Parser{
                 return new Call(tokens[0], ParseArgs(tokens[1]));
             }
             else if(tokens[0].type == TokenType.Varname && tokens[1].type == TokenType.Square){
-                return new Indexor(tokens[0], ParseSubExpression(Tokenizer.Tokenize(tokens[1].value)));
+                return new Indexor(tokens[0], ParseExpression(Tokenizer.Tokenize(tokens[1].value)));
             }
         }
-        else if(tokens.Count == 3){
-            if(tokens[0].type == TokenType.New && tokens[1].type == TokenType.Varname && tokens[2].type == TokenType.Parens){
-                return new New(tokens[1], ParseArgs(tokens[2]));
-            }
-        }
-        foreach(var ops in operators){
-            var index = tokens.FindLastIndex(t=>t.type == TokenType.Operator && ops.Contains(t.value));
-            if(index>=0){
-                var left = ParseSubExpression(tokens.GetRange(0, index));
-                var right = ParseSubExpression(tokens.GetRange(index+1, tokens.Count - (index+1)));
+        foreach(var ops in binaryOps){
+            var index = FindBinaryOp(tokens, ops, prefixOps, postfixOps);
+            if(index >= 0){
+                var left = ParseExpression(tokens.GetRange(0, index));
+                var right = ParseExpression(tokens.GetRange(index+1, tokens.Count - (index+1)));
                 return new BinaryOp(left, right, tokens[index]);
             }
         }
-        if(tokens[0].type == TokenType.Minus){
-            return new UnaryOp(ParseSubExpression(tokens.GetRange(1, tokens.Count-1)), tokens[0]);
+        if(tokens[0].type == TokenType.Operator && prefixOps.Contains(tokens[0].value)){
+            return new PrefixUnaryOp(ParseExpression(tokens.GetRange(1, tokens.Count-1)), tokens[0]);
         }
-        if(tokens[0].type == TokenType.Operator && tokens[0].value == "!"){
-            return new UnaryOp(ParseSubExpression(tokens.GetRange(1, tokens.Count-1)), tokens[0]);
+        var lastToken = tokens[^1];
+        if(lastToken.type == TokenType.Operator && postfixOps.Contains(lastToken.value)){
+            return new PostfixUnaryOp(ParseExpression(tokens.GetRange(0, tokens.Count-1)), lastToken);
         }
-        foreach(var t in tokens){
-            Console.WriteLine(t.value);
+        var dotIndex = tokens.FindLastIndex(t=>t.type == TokenType.Dot);
+        if(dotIndex>0){
+            var left = ParseExpression(tokens.GetRange(0, dotIndex));
+            var right = ParseExpression(tokens.GetRange(dotIndex+1, tokens.Count - (dotIndex+1)));
+            return new BinaryOp(left, right, tokens[dotIndex]);
         }
         throw new Exception("Unexpected tokens");
-    }
-
-    static IExpression ParseExpression(List<Token> tokens){
-        var subtractsSurroundingTokens = new List<TokenType>{TokenType.Varname, TokenType.Int, TokenType.Float};
-        for(var i=1;i<tokens.Count-1;i++){
-            bool isSubtract = tokens[i].type == TokenType.Minus 
-                && subtractsSurroundingTokens.Contains(tokens[i-1].type) 
-                && subtractsSurroundingTokens.Contains(tokens[i+1].type);
-            if(isSubtract){
-                tokens[i].type = TokenType.Operator;
-            }
-        }
-        return ParseSubExpression(tokens);
     }
 
     static List<List<Token>> SplitIntoGroups(List<Token> tokens){
@@ -175,7 +209,15 @@ static class Parser{
                 declarations.Add(new Function(returnType, name, parameters, ParseBody(d[3].value)));
             }
             else{
-                declarations.Add(new Expression(ParseExpression(d)));
+                var index = d.FindIndex(t=>t.type == TokenType.Operator && t.value == "=");
+                if(index >= 0){
+                    var left = ParseExpression(d.GetRange(0, index));
+                    var right = ParseExpression(d.GetRange(index+1, d.Count - (index+1)));
+                    declarations.Add(new Global(left, right));
+                }
+                else{
+                    throw new Exception("Unexpected declaration.");
+                }
             }
         }
         return new Root(declarations);

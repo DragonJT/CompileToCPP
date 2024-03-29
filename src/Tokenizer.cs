@@ -1,7 +1,7 @@
 
 
-enum TokenType{Varname, Int, Float, Curly, Square, Parens, Operator, DoubleQuote, Minus,
-    SingleQuote, Equals, SemiColon, Comma, While, If, Break, True, False, Return, For, New}
+enum TokenType{Varname, Int, Float, Curly, Square, Parens, Operator, DoubleQuote, Dot,
+    SingleQuote, Equals, SemiColon, Comma, While, If, Break, True, False, Return, For}
 
 class Token(string value, int start, int end, TokenType type)
 {
@@ -26,15 +26,15 @@ static class Tokenizer{
         var open = "({[";
         var close = ")}]";
         var specialLiterals = new Dictionary<char, TokenType> {
-             {';', TokenType.SemiColon}, {',', TokenType.Comma}, {'-', TokenType.Minus}
+             {';', TokenType.SemiColon}, {',', TokenType.Comma}, {'.', TokenType.Dot}
         };
         var varnameLiterals = new Dictionary<string, TokenType>{
             {"while", TokenType.While}, {"if", TokenType.If}, {"break", TokenType.Break}, 
             {"true", TokenType.True}, {"false", TokenType.False}, {"return", TokenType.Return},
-            {"for", TokenType.For}, {"new", TokenType.New}
+            {"for", TokenType.For}
         };
-        var operators = "+*/<>!=.";
-        var operators2 = new string[]{"==", ">=", "<=", "!=", "&&", "||"};
+        var operators = "+-*&|/<>!=";
+        var operators2 = new string[]{"==", ">=", "<=", "!=", "&&", "||", "++", "--", "+=", "-=", "*=", "/="};
 
         loop:
         if(index>=code.Length){

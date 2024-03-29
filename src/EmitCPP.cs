@@ -32,8 +32,11 @@ static class EmitCPP{
         else if(expression is BinaryOp binaryOp){
             return EmitExpression(binaryOp.left)+binaryOp.op.value+EmitExpression(binaryOp.right);
         }
-        else if(expression is UnaryOp unaryOp){
-            return unaryOp.op.value+EmitExpression(unaryOp.expression);
+        else if(expression is PrefixUnaryOp prefixUnaryOp){
+            return prefixUnaryOp.op.value+EmitExpression(prefixUnaryOp.expression);
+        }
+        else if(expression is PostfixUnaryOp postfixUnaryOp){
+            return EmitExpression(postfixUnaryOp.expression)+postfixUnaryOp.op.value;
         }
         else if(expression is Indexor indexor){
             return indexor.varname.value+"["+EmitExpression(indexor.indexExpression)+"]";
@@ -106,8 +109,8 @@ static class EmitCPP{
                 cpp += EmitBody(function.body);
                 cpp += "}\n";
             }
-            else if(d is Expression expression){
-                cpp += EmitExpression(expression.expression);
+            else if(d is Global global){
+                cpp += EmitExpression(global.left)+"="+EmitExpression(global.right);
             }
         }
         return cpp;
